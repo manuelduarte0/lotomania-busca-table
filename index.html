@@ -3,97 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Navegador Lotomania</title>
+<title>Analisador Lotomania</title>
 <style>
  body { background:#0A0A0A; color:white; font-family:Arial; text-align:center; padding:15px; }
  h1 { color:#FF8C00; }
- input { width:90%; max-width:300px; padding:12px; font-size:18px; border-radius:10px; border:2px solid #FF8C00; background:#222; color:white; text-align:center; }
- button { padding:12px 20px; font-size:16px; background:#FF8C00; border:none; border-radius:10px; cursor:pointer; font-weight:bold; margin:5px; color:#000; }
- 
- .tabela { display:grid; grid-template-columns: repeat(10, 1fr); gap:5px; max-width:500px; margin:20px auto; }
- .numero { width:100%; aspect-ratio:1/1; border:1px solid #444; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold; background:#222; transition:0.2s; font-size:15px; }
- .sorteado { background:#FF8C00 !important; color:#000; transform:scale(1.1); box-shadow:0 0 10px #FF8C00; }
- 
- #info { margin-top:15px; }
- #msgCopia { color:#00ff88; display:none; }
+ input { width:100px; padding:10px; font-size:16px; border-radius:8px; border:2px solid #FF8C00; background:#222; color:white; text-align:center; margin:3px; }
+ button { padding:12px 18px; font-size:15px; background:#FF8C00; border:none; border-radius:10px; cursor:pointer; font-weight:bold; margin:5px; color:#000; }
+
+.tabela { display:grid; grid-template-columns: repeat(10, 1fr); gap:4px; max-width:500px; margin:20px auto; }
+.numero { width:100%; aspect-ratio:1/1; border:1px solid #444; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold; background:#222; transition:0.3s; font-size:14px; position:relative; }
+.numero span { font-size:10px; position:absolute; bottom:2px; right:3px; }
+
+ /* CORES POR FREQUENCIA */
+.freq1 { background:#FF8C00!important; color:#000; } /* 1x Laranja */
+.freq2 { background:#00BFFF!important; color:#000; } /* 2x Azul */
+.freq3 { background:#FF0000!important; color:#fff; } /* 3x Vermelho */
+.freq4 { background:#DA70D6!important; color:#fff; } /* 4x Lilás */
+.freq5 { background:#8B4513!important; color:#fff; } /* 5x Marrom */
+.freq6 { background:#00FF00!important; color:#000; } /* 6x Verde */
+.freq7 { background:#FFFF00!important; color:#000; } /* 7x+ Amarelo Claro */
+
+ #legenda { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; font-size:12px; margin:10px; }
+.leg { padding:4px 8px; border-radius:5px; }
 </style>
 </head>
 <body>
 
-<h1>🎯 Navegador Lotomania</h1>
-<input type="number" id="concurso" placeholder="Digite: 2931">
+<h1>📊 Analisador Lotomania</h1>
+
+De: <input type="number" id="de" placeholder="2931">
+Até: <input type="number" id="ate" placeholder="2940">
 <br>
-<button onclick="buscar()">🔍 PESQUISAR</button>
+<button onclick="buscarIntervalo()">🔍 PESQUISAR INTERVALO</button>
 <button onclick="ultimo()">ULTIMO</button>
-<button onclick="copiarNumeros()">📋 COPIAR</button>
+<button onclick="limpar()">LIMPAR</button>
 
 <div id="info"></div>
+
+<div id="legenda">
+ <div class="leg freq1">1x Laranja</div>
+ <div class="leg freq2">2x Azul</div>
+ <div class="leg freq3">3x Vermelho</div>
+ <div class="leg freq4">4x Lilás</div>
+ <div class="leg freq5">5x Marrom</div>
+ <div class="leg freq6">6x Verde</div>
+ <div class="leg freq7">7x+ Amarelo</div>
+</div>
+
 <div class="tabela" id="tabela"></div>
-<p id="msgCopia">✅ Números copiados!</p>
 
 <script>
 const API = "https://loteriascaixa-api.herokuapp.com/api/lotomania/";
-let dezenasGlobais = [];
+let contador = {}; // guarda quantas vezes cada número saiu
 
-// CRIA A TABELA: 01 AO 99 E 00 NO FINAL
 function criarTabela(){
   const tabela = document.getElementById('tabela');
-  // 01 até 99
+  tabela.innerHTML = "";
   for(let i = 1; i <= 99; i++){
     let num = i.toString().padStart(2, '0');
-    tabela.innerHTML += `<div class="numero" id="n${num}">${num}</div>`;
+    tabela.innerHTML += `<div class="numero" id="n${num}">${num}<span id="c${num}"></span></div>`;
   }
-  // 00 no final
-  tabela.innerHTML += `<div class="numero" id="n00">00</div>`;
+  tabela.innerHTML += `<div class="numero" id="n00">00<span id="c00"></span></div>`;
 }
 
-async function buscar(){
-  let num = document.getElementById('concurso').value;
-  if(!num) return alert("Digite um número");
-  carregar(num);
+async function buscarIntervalo(){
+  let de = parseInt(document.getElementById('de').value);
+  let ate = parseInt(document.getElementById('ate').value);
+  if(!de ||!ate) return alert("Preencha De e Até");
+  if(ate - de > 9) return alert("Máximo 10 concursos por vez");
+
+  limpar();
+  document.getElementById('info').innerText = `Buscando ${de} até ${ate}...`;
+
+  for(let i = de; i <= ate; i++){
+    try{
+      let res = await fetch(API + i);
+      let data = await res.json();
+      if(!data.erro){
+        data.dezenas.forEach(n => {
+          contador[n] = (contador[n] || 0) + 1; // conta +1
+        });
+      }
+    } catch(e){}
+  }
+  pintarTabela();
+  document.getElementById('info').innerText = `Analisados ${ate - de + 1} concursos`;
+}
+
+function pintarTabela(){
+  for(let num in contador){
+    let vezes = contador[num];
+    let el = document.getElementById('n' + num);
+    let contEl = document.getElementById('c' + num);
+    if(el){
+      let classe = vezes >= 7? 'freq7' : 'freq' + vezes;
+      el.classList.add(classe);
+      contEl.innerText = vezes; // mostra quantas vezes
+    }
+  }
 }
 
 async function ultimo(){
-  document.getElementById('info').innerText = "Buscando último concurso...";
+  limpar();
+  document.getElementById('info').innerText = "Buscando último...";
   let res = await fetch(API + "latest");
   let data = await res.json();
-  mostrar(data);
+  data.dezenas.forEach(n => contador[n] = 1);
+  pintarTabela();
+  document.getElementById('info').innerHTML = `<h2>Concurso ${data.concurso}</h2>`;
 }
 
-async function carregar(num){
-  limparTabela();
-  document.getElementById('info').innerText = "Buscando concurso " + num + "...";
-  try{
-    let res = await fetch(API + num);
-    let data = await res.json();
-    if(data.erro) throw new Error();
-    mostrar(data);
-  } catch(e){
-    document.getElementById('info').innerText = "Concurso não encontrado";
-  }
-}
-
-function mostrar(data){
-  dezenasGlobais = data.dezenas;
-  document.getElementById('info').innerHTML = `<h2>Concurso ${data.concurso} - ${data.data}</h2>`;
-  
-  data.dezenas.forEach(n => {
-    let el = document.getElementById('n' + n);
-    if(el) el.classList.add('sorteado');
+function limpar(){
+  contador = {};
+  document.querySelectorAll('.numero').forEach(el => {
+    el.className = 'numero';
+    el.querySelector('span').innerText = '';
   });
-}
-
-function limparTabela(){
-  document.querySelectorAll('.numero').forEach(el => el.classList.remove('sorteado'));
-}
-
-function copiarNumeros(){
-  if(dezenasGlobais.length == 0) return alert("Pesquise um concurso primeiro");
-  let texto = dezenasGlobais.join(", ");
-  navigator.clipboard.writeText(texto).then(() => {
-    document.getElementById('msgCopia').style.display = "block";
-    setTimeout(() => document.getElementById('msgCopia').style.display = "none", 2000);
-  });
+  document.getElementById('info').innerText = '';
 }
 
 criarTabela();
