@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navegador Lotomania</title>
+<style>
+ body { background:#0A0A0A; color:white; font-family:Arial; text-align:center; padding:15px; }
+ h1 { color:#FF8C00; }
+ input { width:90%; max-width:300px; padding:12px; font-size:18px; border-radius:10px; border:2px solid #FF8C00; background:#222; color:white; text-align:center; }
+ button { padding:12px 20px; font-size:16px; background:#FF8C00; border:none; border-radius:10px; cursor:pointer; font-weight:bold; margin:5px; color:#000; }
+ 
+ .tabela { display:grid; grid-template-columns: repeat(10, 1fr); gap:5px; max-width:500px; margin:20px auto; }
+ .numero { width:100%; aspect-ratio:1/1; border:1px solid #444; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold; background:#222; transition:0.2s; font-size:15px; }
+ .sorteado { background:#FF8C00 !important; color:#000; transform:scale(1.1); box-shadow:0 0 10px #FF8C00; }
+ 
+ #info { margin-top:15px; }
+ #msgCopia { color:#00ff88; display:none; }
+</style>
+</head>
+<body>
+
+<h1>🎯 Navegador Lotomania</h1>
+<input type="number" id="concurso" placeholder="Digite: 2931">
+<br>
+<button onclick="buscar()">🔍 PESQUISAR</button>
+<button onclick="ultimo()">ULTIMO</button>
+<button onclick="copiarNumeros()">📋 COPIAR</button>
+
+<div id="info"></div>
+<div class="tabela" id="tabela"></div>
+<p id="msgCopia">✅ Números copiados!</p>
+
+<script>
+const API = "https://loteriascaixa-api.herokuapp.com/api/lotomania/";
+let dezenasGlobais = [];
+
+// CRIA A TABELA: 01 AO 99 E 00 NO FINAL
+function criarTabela(){
+  const tabela = document.getElementById('tabela');
+  // 01 até 99
+  for(let i = 1; i <= 99; i++){
+    let num = i.toString().padStart(2, '0');
+    tabela.innerHTML += `<div class="numero" id="n${num}">${num}</div>`;
+  }
+  // 00 no final
+  tabela.innerHTML += `<div class="numero" id="n00">00</div>`;
+}
+
+async function buscar(){
+  let num = document.getElementById('concurso').value;
+  if(!num) return alert("Digite um número");
+  carregar(num);
+}
+
+async function ultimo(){
+  document.getElementById('info').innerText = "Buscando último concurso...";
+  let res = await fetch(API + "latest");
+  let data = await res.json();
+  mostrar(data);
+}
+
+async function carregar(num){
+  limparTabela();
+  document.getElementById('info').innerText = "Buscando concurso " + num + "...";
+  try{
+    let res = await fetch(API + num);
+    let data = await res.json();
+    if(data.erro) throw new Error();
+    mostrar(data);
+  } catch(e){
+    document.getElementById('info').innerText = "Concurso não encontrado";
+  }
+}
+
+function mostrar(data){
+  dezenasGlobais = data.dezenas;
+  document.getElementById('info').innerHTML = `<h2>Concurso ${data.concurso} - ${data.data}</h2>`;
+  
+  data.dezenas.forEach(n => {
+    let el = document.getElementById('n' + n);
+    if(el) el.classList.add('sorteado');
+  });
+}
+
+function limparTabela(){
+  document.querySelectorAll('.numero').forEach(el => el.classList.remove('sorteado'));
+}
+
+function copiarNumeros(){
+  if(dezenasGlobais.length == 0) return alert("Pesquise um concurso primeiro");
+  let texto = dezenasGlobais.join(", ");
+  navigator.clipboard.writeText(texto).then(() => {
+    document.getElementById('msgCopia').style.display = "block";
+    setTimeout(() => document.getElementById('msgCopia').style.display = "none", 2000);
+  });
+}
+
+criarTabela();
+</script>
+
+</body>
+</html>
