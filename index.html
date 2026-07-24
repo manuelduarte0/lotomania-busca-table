@@ -44,7 +44,7 @@ Até: <input type="number" id="ate" placeholder="2940">
 <button onclick="proximo()">PRÓXIMO ➡</button>
 <button onclick="ultimo()">ULTIMO</button>
 <button onclick="limpar()">LIMPAR</button>
-<button id="btnCongelar" onclick="toggleCongelar()">🧊 CONGELAR</button>
+<button id="btnCongelar" onclick="toggleCongelar()">🧊 CONGELAR</button> <!-- AQUI ESTA O BOTAO -->
 
 <div id="info"></div>
 
@@ -62,10 +62,10 @@ Até: <input type="number" id="ate" placeholder="2940">
 
 <script>
 const API = "https://loteriascaixa-api.herokuapp.com/api/lotomania/";
-let contador = {}; // guarda quantas vezes cada número saiu
-let congelado = false; // estado do congelar
-let contadorCongelado = {}; // copia do contador quando congelar
-let concursoAtualMarcado = []; // guarda os 20 numeros do ultimo concurso buscado
+let contador = {};
+let congelado = false;
+let contadorCongelado = {};
+let concursoAtualMarcado = [];
 
 function criarTabela(){
   const tabela = document.getElementById('tabela');
@@ -81,7 +81,7 @@ function toggleCongelar(){
   congelado =!congelado;
   let btn = document.getElementById('btnCongelar');
   if(congelado){
-    contadorCongelado = {...contador}; // faz copia
+    contadorCongelado = {...contador};
     btn.innerText = "🔓 DESCONGELAR";
     btn.classList.add('congelado');
     document.querySelectorAll('.numero').forEach(el => el.classList.add('frozen'));
@@ -93,7 +93,7 @@ function toggleCongelar(){
     btn.classList.remove('congelado');
     document.querySelectorAll('.numero').forEach(el => el.classList.remove('frozen'));
     limparMarcas();
-    pintarTabela(); // repinta normal
+    pintarTabela();
   }
 }
 
@@ -107,11 +107,11 @@ async function buscarIntervalo(){
   if(!de ||!ate) return alert("Preencha De e Até");
   if(ate - de > 9) return alert("Máximo 10 concursos por vez");
 
-  if(!congelado) limpar(); // só limpa se não estiver congelado
+  if(!congelado) limpar();
 
   document.getElementById('info').innerText = `Buscando ${de} até ${ate}...`;
 
-  concursoAtualMarcado = []; // reseta marcação
+  concursoAtualMarcado = [];
 
   for(let i = de; i <= ate; i++){
     try{
@@ -119,30 +119,30 @@ async function buscarIntervalo(){
       let data = await res.json();
       if(!data.erro){
         data.dezenas.forEach(n => {
-          contador[n] = (contador[n] || 0) + 1; // conta +1
+          contador[n] = (contador[n] || 0) + 1;
         });
-        if(i == ate) concursoAtualMarcado = data.dezenas; // salva os 20 do ultimo
+        if(i == ate) concursoAtualMarcado = data.dezenas;
       }
     } catch(e){}
   }
   pintarTabela();
-  marcarNovos(); // marca os × do ultimo concurso
+  marcarNovos();
   document.getElementById('info').innerText = `Analisados ${ate - de + 1} concursos`;
 }
 
 function pintarTabela(){
-  let baseContador = congelado? {...contadorCongelado,...contador} : contador; // junta congelado + novo
+  let baseContador = congelado? {...contadorCongelado,...contador} : contador;
 
   for(let num in baseContador){
     let vezes = baseContador[num];
     let el = document.getElementById('n' + num);
     let contEl = document.getElementById('c' + num);
     if(el){
-      el.className = 'numero'; // reseta classe
+      el.className = 'numero';
       if(congelado) el.classList.add('frozen');
       let classe = vezes >= 7? 'freq7' : 'freq' + vezes;
       el.classList.add(classe);
-      contEl.innerText = vezes; // mostra quantas vezes
+      contEl.innerText = vezes;
     }
   }
 }
@@ -151,7 +151,7 @@ function marcarNovos(){
   limparMarcas();
   concursoAtualMarcado.forEach(n => {
     let marcaEl = document.getElementById('m' + n);
-    if(marcaEl) marcaEl.innerText = '×'; // coloca o x vermelho
+    if(marcaEl) marcaEl.innerText = '×';
   });
 }
 
