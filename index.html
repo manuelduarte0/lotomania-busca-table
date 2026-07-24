@@ -35,6 +35,8 @@ De: <input type="number" id="de" placeholder="2931">
 Até: <input type="number" id="ate" placeholder="2940">
 <br>
 <button onclick="buscarIntervalo()">🔍 PESQUISAR INTERVALO</button>
+<button onclick="anterior()">⬅ ANTERIOR</button>
+<button onclick="proximo()">PRÓXIMO ➡</button>
 <button onclick="ultimo()">ULTIMO</button>
 <button onclick="limpar()">LIMPAR</button>
 
@@ -101,6 +103,25 @@ function pintarTabela(){
       contEl.innerText = vezes; // mostra quantas vezes
     }
   }
+}
+
+function proximo(){
+  let de = parseInt(document.getElementById('de').value);
+  let ate = parseInt(document.getElementById('ate').value);
+  if(!de ||!ate) return alert("Preencha De e Até primeiro");
+  document.getElementById('de').value = de + 1;
+  document.getElementById('ate').value = ate + 1;
+  buscarIntervalo();
+}
+
+function anterior(){
+  let de = parseInt(document.getElementById('de').value);
+  let ate = parseInt(document.getElementById('ate').value);
+  if(!de ||!ate) return alert("Preencha De e Até primeiro");
+  if(de <= 1) return alert("Já está no primeiro concurso");
+  document.getElementById('de').value = de - 1;
+  document.getElementById('ate').value = ate - 1;
+  buscarIntervalo();
 }
 
 async function ultimo(){
