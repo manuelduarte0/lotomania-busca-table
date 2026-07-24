@@ -14,7 +14,21 @@
 .tabela { display:grid; grid-template-columns: repeat(10, 1fr); gap:4px; max-width:500px; margin:20px auto; }
 .numero { width:100%; aspect-ratio:1/1; border:1px solid #444; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold; background:#222; transition:0.3s; font-size:14px; position:relative; }
 .numero span { font-size:10px; position:absolute; bottom:2px; right:3px; }
-.numero.marca { font-size:18px; position:absolute; top:1px; right:2px; color:#FF0000; font-weight:900; text-shadow: 0 0 3px #000; }
+
+/* MARCA GIGANTE ❌ */
+.numero.marca {
+  font-size:40px;
+  position:absolute;
+  top:0; left:0; right:0; bottom:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#FF0000;
+  font-weight:900;
+  text-shadow: 0 0 5px #000;
+  pointer-events:none;
+  z-index:10;
+}
 
  /* CORES POR FREQUENCIA */
 .freq1 { background:#FF8C00!important; color:#000; }
@@ -26,7 +40,7 @@
 .freq7 { background:#FFFF00!important; color:#000; }
 
  /* COR DE CONGELADO */
-.frozen { opacity:0.6; border:2px solid #555!important; }
+.frozen { opacity:0.5; }
 
  #legenda { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; font-size:12px; margin:10px; }
 .leg { padding:4px 8px; border-radius:5px; }
@@ -72,20 +86,20 @@ function criarTabela(){
   tabela.innerHTML = "";
   for(let i = 1; i <= 99; i++){
     let num = i.toString().padStart(2, '0');
-    tabela.innerHTML += `<div class="numero" id="n${num}">${num}<span id="c${num}"></span><span class="marca" id="m${num}"></span></div>`;
+    tabela.innerHTML += `<div class="numero" id="n${num}">${num}<span id="c${num}"></span><div class="marca" id="m${num}"></div></div>`;
   }
-  tabela.innerHTML += `<div class="numero" id="n00">00<span id="c00"></span><span class="marca" id="m00"></span></div>`;
+  tabela.innerHTML += `<div class="numero" id="n00">00<span id="c00"></span><div class="marca" id="m00"></div></div>`;
 }
 
 function toggleCongelar(){
   congelado =!congelado;
   let btn = document.getElementById('btnCongelar');
   if(congelado){
-    contadorCongelado = JSON.parse(JSON.stringify(contador)); // copia profunda
+    contadorCongelado = JSON.parse(JSON.stringify(contador)); // trava as cores
     btn.innerText = "🔓 DESCONGELAR";
     btn.classList.add('congelado');
     document.querySelectorAll('.numero').forEach(el => el.classList.add('frozen'));
-    document.getElementById('info').innerText += " | MODO CONGELADO ATIVO";
+    document.getElementById('info').innerText += " | MODO CONGELADO";
   } else {
     contadorCongelado = {};
     concursoAtualMarcado = [];
@@ -93,7 +107,7 @@ function toggleCongelar(){
     btn.classList.remove('congelado');
     document.querySelectorAll('.numero').forEach(el => el.classList.remove('frozen'));
     limparMarcas();
-    pintarTabela();
+    pintarTabela(); // repinta normal
   }
 }
 
@@ -108,10 +122,10 @@ async function buscarIntervalo(){
   if(ate - de > 9) return alert("Máximo 10 concursos por vez");
 
   if(!congelado){
-    limpar(); // só limpa tudo se não estiver congelado
+    limpar(); // limpa tudo se não estiver congelado
   } else {
-    contador = {}; // se estiver congelado, zera só o contador novo
-    limparMarcas();
+    contador = {}; // se estiver congelado só zera o novo
+    limparMarcas(); // limpa os x antigos
   }
 
   document.getElementById('info').innerText = `Buscando ${de} até ${ate}...`;
@@ -130,14 +144,16 @@ async function buscarIntervalo(){
     } catch(e){}
   }
   pintarTabela();
-  marcarNovos();
-  document.getElementById('info').innerText = `Analisados ${ate - de + 1} concursos ${congelado? '| MODO CONGELADO ATIVO' : ''}`;
+  marcarNovos(); // coloca o ❌
+  document.getElementById('info').innerText = `Analisados ${ate - de + 1} concursos ${congelado? '| MODO CONGELADO' : ''}`;
 }
 
 function pintarTabela(){
-  // junta o congelado + o novo
-  let baseContador = congelado? {...contadorCongelado} : {};
-  for(let n in contador){ baseContador[n] = (baseContador[n] || 0) + contador[n]; }
+  // Se estiver congelado, usa só o contadorCongelado. Não soma mais nada.
+  let baseContador = congelado? contadorCongelado : {};
+  if(!congelado){
+    for(let n in contador){ baseContador[n] = (baseContador[n] || 0) + contador[n]; }
+  }
 
   for(let num in baseContador){
     let vezes = baseContador[num];
@@ -157,7 +173,7 @@ function marcarNovos(){
   limparMarcas();
   concursoAtualMarcado.forEach(n => {
     let marcaEl = document.getElementById('m' + n);
-    if(marcaEl) marcaEl.innerText = '×'; // marca os 20 do novo concurso
+    if(marcaEl) marcaEl.innerText = '❌'; // ❌ GIGANTE
   });
 }
 
