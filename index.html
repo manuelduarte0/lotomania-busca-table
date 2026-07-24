@@ -14,19 +14,19 @@
 .tabela { display:grid; grid-template-columns: repeat(10, 1fr); gap:4px; max-width:500px; margin:20px auto; }
 .numero { width:100%; aspect-ratio:1/1; border:1px solid #444; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold; background:#222; transition:0.3s; font-size:14px; position:relative; }
 .numero span { font-size:10px; position:absolute; bottom:2px; right:3px; }
-.numero.marca { font-size:16px; position:absolute; top:1px; right:2px; color:#FF0000; font-weight:bold; }
+.numero.marca { font-size:18px; position:absolute; top:1px; right:2px; color:#FF0000; font-weight:900; text-shadow: 0 0 3px #000; }
 
  /* CORES POR FREQUENCIA */
-.freq1 { background:#FF8C00!important; color:#000; } /* 1x Laranja */
-.freq2 { background:#00BFFF!important; color:#000; } /* 2x Azul */
-.freq3 { background:#FF0000!important; color:#fff; } /* 3x Vermelho */
-.freq4 { background:#DA70D6!important; color:#fff; } /* 4x Lilás */
-.freq5 { background:#8B4513!important; color:#fff; } /* 5x Marrom */
-.freq6 { background:#00FF00!important; color:#000; } /* 6x Verde */
-.freq7 { background:#FFFF00!important; color:#000; } /* 7x+ Amarelo Claro */
+.freq1 { background:#FF8C00!important; color:#000; }
+.freq2 { background:#00BFFF!important; color:#000; }
+.freq3 { background:#FF0000!important; color:#fff; }
+.freq4 { background:#DA70D6!important; color:#fff; }
+.freq5 { background:#8B4513!important; color:#fff; }
+.freq6 { background:#00FF00!important; color:#000; }
+.freq7 { background:#FFFF00!important; color:#000; }
 
  /* COR DE CONGELADO */
-.frozen { opacity:0.7; border:2px solid #555!important; }
+.frozen { opacity:0.6; border:2px solid #555!important; }
 
  #legenda { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; font-size:12px; margin:10px; }
 .leg { padding:4px 8px; border-radius:5px; }
@@ -44,7 +44,7 @@ Até: <input type="number" id="ate" placeholder="2940">
 <button onclick="proximo()">PRÓXIMO ➡</button>
 <button onclick="ultimo()">ULTIMO</button>
 <button onclick="limpar()">LIMPAR</button>
-<button id="btnCongelar" onclick="toggleCongelar()">🧊 CONGELAR</button> <!-- AQUI ESTA O BOTAO -->
+<button id="btnCongelar" onclick="toggleCongelar()">🧊 CONGELAR</button>
 
 <div id="info"></div>
 
@@ -81,11 +81,11 @@ function toggleCongelar(){
   congelado =!congelado;
   let btn = document.getElementById('btnCongelar');
   if(congelado){
-    contadorCongelado = {...contador};
+    contadorCongelado = JSON.parse(JSON.stringify(contador)); // copia profunda
     btn.innerText = "🔓 DESCONGELAR";
     btn.classList.add('congelado');
     document.querySelectorAll('.numero').forEach(el => el.classList.add('frozen'));
-    document.getElementById('info').innerText += " | MODO CONGELADO";
+    document.getElementById('info').innerText += " | MODO CONGELADO ATIVO";
   } else {
     contadorCongelado = {};
     concursoAtualMarcado = [];
@@ -107,10 +107,14 @@ async function buscarIntervalo(){
   if(!de ||!ate) return alert("Preencha De e Até");
   if(ate - de > 9) return alert("Máximo 10 concursos por vez");
 
-  if(!congelado) limpar();
+  if(!congelado){
+    limpar(); // só limpa tudo se não estiver congelado
+  } else {
+    contador = {}; // se estiver congelado, zera só o contador novo
+    limparMarcas();
+  }
 
   document.getElementById('info').innerText = `Buscando ${de} até ${ate}...`;
-
   concursoAtualMarcado = [];
 
   for(let i = de; i <= ate; i++){
@@ -121,17 +125,19 @@ async function buscarIntervalo(){
         data.dezenas.forEach(n => {
           contador[n] = (contador[n] || 0) + 1;
         });
-        if(i == ate) concursoAtualMarcado = data.dezenas;
+        if(i == ate) concursoAtualMarcado = data.dezenas; // salva os 20 do ultimo
       }
     } catch(e){}
   }
   pintarTabela();
   marcarNovos();
-  document.getElementById('info').innerText = `Analisados ${ate - de + 1} concursos`;
+  document.getElementById('info').innerText = `Analisados ${ate - de + 1} concursos ${congelado? '| MODO CONGELADO ATIVO' : ''}`;
 }
 
 function pintarTabela(){
-  let baseContador = congelado? {...contadorCongelado,...contador} : contador;
+  // junta o congelado + o novo
+  let baseContador = congelado? {...contadorCongelado} : {};
+  for(let n in contador){ baseContador[n] = (baseContador[n] || 0) + contador[n]; }
 
   for(let num in baseContador){
     let vezes = baseContador[num];
@@ -151,7 +157,7 @@ function marcarNovos(){
   limparMarcas();
   concursoAtualMarcado.forEach(n => {
     let marcaEl = document.getElementById('m' + n);
-    if(marcaEl) marcaEl.innerText = '×';
+    if(marcaEl) marcaEl.innerText = '×'; // marca os 20 do novo concurso
   });
 }
 
